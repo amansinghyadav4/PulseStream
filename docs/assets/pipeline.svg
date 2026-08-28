@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 440" width="1280" height="440" role="img" aria-label="PulseStream architecture: producers post to the FastAPI ingest API, which commits to PostgreSQL and publishes to a Kafka topic. Two independent consumer groups read the same topic without rejoining: persistence workers write to PostgreSQL, analytics workers aggregate into Redis which feeds the WebSocket broadcast to the dashboard. Poison events go to a dead-letter topic.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0b0d10"/><stop offset="100%" stop-color="#0e1116"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#4d8dff" stop-opacity=".16"/><stop offset="100%" stop-color="#4d8dff" stop-opacity="0"/>
+    </radialGradient>
+    <style>
+      .t { font-family: "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif; }
+      .card { fill: #101317; stroke: rgba(255,255,255,.10); rx: 9 }
+      .h  { font-size: 13px; font-weight: 650; fill: #e8ecf1 }
+      .s  { font-size: 10.5px; fill: #66707c; letter-spacing: .3px }
+      .cap{ font-size: 10.5px; fill: #66707c; letter-spacing: 1.1px }
+      .lane { font-size: 10.5px; fill: #4d8dff; letter-spacing: 1.2px; opacity: .85 }
+      .link { fill: none; stroke: #4d8dff; stroke-width: 1.6; stroke-dasharray: 5 8;
+              animation: flow 1.05s linear infinite }
+      .link.slow { animation-duration: 1.7s; stroke: #3fb950; opacity: .8 }
+      .link.dlq  { stroke: #f85149; opacity: .55; animation-duration: 2.4s }
+      .link.rest { stroke: #66707c; opacity: .5; stroke-dasharray: 3 7; animation-duration: 2.1s }
+      .dot { fill: #3fb950 }
+      .pulse { animation: pulse 2.2s ease-in-out infinite }
+      .in { opacity: 0; animation: in .6s ease-out forwards }
+      .b1{animation-delay:.05s}.b2{animation-delay:.2s}.b3{animation-delay:.35s}
+      .b4{animation-delay:.5s}.b5{animation-delay:.65s}.b6{animation-delay:.8s}
+      @keyframes flow  { to { stroke-dashoffset: -26 } }
+      @keyframes pulse { 0%,100% { opacity:.4 } 50% { opacity:1 } }
+      @keyframes in    { to { opacity: 1 } }
+      @media (prefers-reduced-motion: reduce) {
+        .link,.pulse { animation: none } .in { opacity:1; animation:none }
+      }
+    </style>
+  </defs>
+
+  <rect width="1280" height="440" fill="url(#bg)"/>
+  <circle cx="640" cy="180" r="520" fill="url(#halo)"/>
+  <text class="t cap" x="24" y="34">PULSESTREAM · AS-BUILT EVENT PIPELINE</text>
+  <text class="t lane" x="536" y="70">CONSUMER GROUP · persistence-workers</text>
+  <text class="t lane" x="536" y="410">CONSUMER GROUP · analytics-workers</text>
+
+  <!-- links (drawn under the cards) -->
+  <g>
+    <path class="link" d="M154 208 H196"/>
+    <path class="link" d="M336 208 H356"/>
+    <path class="link" d="M496 208 H516 V123 H536"/>
+    <path class="link" d="M496 208 H516 V293 H536"/>
+    <path class="link" d="M676 123 H716"/>
+    <path class="link slow" d="M676 293 H716"/>
+    <path class="link slow" d="M856 293 H896"/>
+    <path class="link slow" d="M1036 293 H1076"/>
+    <path class="link dlq" d="M426 241 V310"/>
+    <path class="link rest" d="M786 156 V196 H1146 V260"/>
+  </g>
+
+  <!-- producers -->
+  <g class="in b1"><rect class="card" x="24" y="175" width="130" height="66"/>
+    <text class="t h" x="42" y="203">Producers</text>
+    <text class="t s" x="42" y="222">POST /events</text></g>
+
+  <!-- api -->
+  <g class="in b1"><rect class="card" x="196" y="175" width="140" height="66"/>
+    <circle class="dot pulse" cx="320" cy="191" r="3.2"/>
+    <text class="t h" x="214" y="203">FastAPI</text>
+    <text class="t s" x="214" y="222">validate · authorize</text></g>
+
+  <!-- kafka -->
+  <g class="in b2"><rect class="card" x="356" y="175" width="140" height="66"/>
+    <circle class="dot pulse" cx="480" cy="191" r="3.2"/>
+    <text class="t h" x="374" y="203">Kafka</text>
+    <text class="t s" x="374" y="222">6 partitions</text></g>
+
+  <!-- dlq -->
+  <g class="in b3"><rect class="card" x="356" y="310" width="140" height="58" stroke="rgba(248,81,73,.32)"/>
+    <text class="t h" x="374" y="335" fill="#ffb4ae">Dead letter</text>
+    <text class="t s" x="374" y="352">bounded retry ×3</text></g>
+
+  <!-- persistence lane -->
+  <g class="in b3"><rect class="card" x="536" y="90" width="140" height="66"/>
+    <circle class="dot pulse" cx="660" cy="106" r="3.2"/>
+    <text class="t h" x="554" y="118">Persistence</text>
+    <text class="t s" x="554" y="137">idempotent insert</text></g>
+  <g class="in b4"><rect class="card" x="716" y="90" width="140" height="66"/>
+    <text class="t h" x="734" y="118">PostgreSQL</text>
+    <text class="t s" x="734" y="137">source of truth</text></g>
+
+  <!-- analytics lane -->
+  <g class="in b4"><rect class="card" x="536" y="260" width="140" height="66"/>
+    <circle class="dot pulse" cx="660" cy="276" r="3.2"/>
+    <text class="t h" x="554" y="288">Analytics</text>
+    <text class="t s" x="554" y="307">seen:{id} gate</text></g>
+  <g class="in b5"><rect class="card" x="716" y="260" width="140" height="66"/>
+    <text class="t h" x="734" y="288">Redis</text>
+    <text class="t s" x="734" y="307">per-tenant counters</text></g>
+  <g class="in b5"><rect class="card" x="896" y="260" width="140" height="66"/>
+    <circle class="dot pulse" cx="1020" cy="276" r="3.2"/>
+    <text class="t h" x="914" y="288">WebSocket</text>
+    <text class="t s" x="914" y="307">broadcast ~1s</text></g>
+  <g class="in b6"><rect class="card" x="1076" y="260" width="140" height="66" stroke="rgba(77,141,255,.38)"/>
+    <text class="t h" x="1094" y="288" fill="#7aa7ff">Dashboard</text>
+    <text class="t s" x="1094" y="307">live + polling</text></g>
+
+  <text class="t s" x="800" y="188">REST reads · /events</text>
+  <text class="t s" x="24" y="424">Two consumer groups read the same topic independently — the lanes never rejoin.</text>
+</svg>

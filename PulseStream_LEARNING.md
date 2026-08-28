@@ -2009,3 +2009,24 @@ Seventh increment. Scope: make the **existing** product production/demo ready �
 **Tests (81 passing, +3):** the login page renders the back control and still exposes the email field / forgot-password / create-account links; clicking it lands on `#/landing` with the marketing hero rendered; the logout test now asserts the landing page (keeping its CSRF-header assertion); and a new test signs out and then re-requests `#/overview` to prove the protected-route guard still redirects to `#/login` — the new exit path must not be mistaken for a weakened session.
 
 **Verification:** `vitest run` 81 passed (9 files); `tsc --noEmit` exit 0; `npm run build` clean (83 modules, CSS 67.16 kB, JS 278.66 kB).
+
+
+---
+
+## 35. README rebuilt as a visual, animated landing page (2026-08-28)
+
+**Ask:** replace the text-heavy `README.md` with something modelled on the OmniRoute README — visual first, animated, and carrying the actual dashboard screenshots.
+
+**What OmniRoute actually does** (read before writing anything): a centred `<div align="center">` hero, a typing-SVG tagline, a wall of shields.io `for-the-badge` badges, an HTML nav table linking to emoji-slug anchors, screenshots in fixed-width HTML tables with `<sub>` captions, and long prose folded into `<details>` blocks. The trick is not more content — it is *less* prose per screenful, with structure doing the explaining.
+
+**Animation without JavaScript.** GitHub strips `<script>` from Markdown, so nothing interactive survives. Two mechanisms remain:
+1. **Self-hosted animated SVGs** — CSS `@keyframes` inside the `<svg>` element still animate when the file is referenced as an image on the raw CDN. `docs/assets/hero.svg` (drifting radial glows, an ECG-style pulse trace revealed with `stroke-dashoffset`, staggered text fade-ins), `docs/assets/pipeline.svg` (dashed links that flow, per-card entrance stagger, pulsing status dots), `docs/assets/divider.svg` (a sweeping gradient rule).
+2. **`readme-typing-svg.demolab.com`** for the animated four-line tagline — the one external dependency, chosen because it degrades to a static line if the service is unreachable.
+
+Every animated SVG carries a `@media (prefers-reduced-motion: reduce)` block that freezes the animation and forces the final visual state. Motion is decoration here, so it must be droppable.
+
+**SVG lessons.** Text inside SVG does not wrap or reflow: labels have to be hand-fitted. Two problems found by measuring rather than eyeballing — the hero's pulse trace was drawn through the topology strip's text baseline (fixed by rebuilding the path in absolute coordinates around `y=250`, and raising `stroke-dasharray` 1700 → 2400 so the longer path still reveals fully), and six `pipeline.svg` sub-labels overflowed their 140 px cards (`ON CONFLICT DO NOTHING` → `idempotent insert`, `counters · per-tenant keys` → `per-tenant counters`, and so on). Each diagram also gets a long descriptive `aria-label`, because the diagram *is* the architecture explanation for anyone reading it.
+
+**Honesty compromises.** OmniRoute leans on headline statistics; PulseStream cannot, because most of ours were never measured. The "Measured, not claimed" section quotes only the figures the load-test run actually produced (batch ≈ 4.8K events/s at p95 1.5 s, ≈ 7K saturated, single-event ≈ 50/s, persistence drain ≈ 370/s), keeps the machine-specific caveat, and links `docs/load-testing.md`. The Tests section lists commands and no counts — the backend suite run for this pass never completed, and a plausible-looking number would have been invented. No uptime claim, no fabricated logos.
+
+**Assets added:** `docs/assets/{hero,pipeline,divider}.svg` and `docs/screenshots/{landing,overview,events,sources,pipeline,simulator}.png`. `README.md` went 176 → 396 lines, but most of that is structure (tables, `<details>`, image markup) rather than prose to read.
