@@ -1,0 +1,1 @@
+{"error":{"code":"validation_error","message":"request validation failed","details":[{"type":"value_error","loc":["body","event_type"],"msg":"Value error, event_type must match ^[a-z][a-z0-9_.]*$","input":"Bad Type!"}]}}

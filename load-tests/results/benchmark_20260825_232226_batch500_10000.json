@@ -1,0 +1,77 @@
+{
+  "step": "batch500_10000",
+  "target_events_per_sec": 10000,
+  "mode": "batch",
+  "batch_size": 500,
+  "concurrency": 64,
+  "duration_s": 20,
+  "client": {
+    "target_events_per_sec": 10000,
+    "sent_requests": 400,
+    "ok_events": 200000,
+    "wall_seconds": 28.506,
+    "offered_requests_per_sec": 20.0,
+    "achieved_events_per_sec": 7016.1,
+    "achieved_requests_per_sec": 14.03,
+    "completion_tail_seconds": 8.506,
+    "behind_schedule": false,
+    "status_breakdown": {
+      "201": 400
+    },
+    "latency_ms": {
+      "p50": 4432.22,
+      "p90": 4714.06,
+      "p95": 4797.15,
+      "p99": 4853.68,
+      "max": 4943.13,
+      "samples": 400
+    },
+    "error_rate_pct": 0.0
+  },
+  "drain_seconds_until_persistence_lag_zero": null,
+  "persisted_rows_delta": 200000,
+  "persistence_rate_per_sec": 6767.3,
+  "db_before": {
+    "rows": 127771,
+    "total_relation_bytes": 48201728
+  },
+  "db_after": {
+    "rows": 327771,
+    "total_relation_bytes": 124895232
+  },
+  "resources_during_load": {
+    "pulsestream-api": {
+      "cpu_peak_pct": "92.8%",
+      "mem_last": "217.4MiB / 7.593GiB"
+    },
+    "pulsestream-persistence-worker": {
+      "cpu_peak_pct": "94.33%",
+      "mem_last": "65.03MiB / 7.593GiB"
+    },
+    "pulsestream-analytics-worker": {
+      "cpu_peak_pct": "75.07%",
+      "mem_last": "57.8MiB / 7.593GiB"
+    },
+    "pulsestream-frontend": {
+      "cpu_peak_pct": "2.35%",
+      "mem_last": "20.17MiB / 7.593GiB"
+    },
+    "pulsestream-redis": {
+      "cpu_peak_pct": "15.14%",
+      "mem_last": "30.23MiB / 7.593GiB"
+    },
+    "pulsestream-kafka": {
+      "cpu_peak_pct": "235.25%",
+      "mem_last": "1014MiB / 7.593GiB"
+    },
+    "pulsestream-postgres": {
+      "cpu_peak_pct": "28.28%",
+      "mem_last": "177MiB / 7.593GiB"
+    }
+  },
+  "lag_samples_count": 44,
+  "lag_samples_max_seen": {
+    "persistence-workers": 50239,
+    "analytics-workers": 40878
+  }
+}

@@ -1,0 +1,152 @@
+# PulseStream production-style single-host stack (Phase 8).
+#
+# Differences from dev docker-compose.yml:
+#   - backend/frontend run PRE-BUILT images (no runtime pip install, no source mounts)
+#   - APP_ENV=production (skips create_all; settings fail-fast on dev defaults)
+#   - credentials/secrets come from an env file via ${VAR:?} required vars
+#   - log rotation + restart policies everywhere
+#
+# Build images first (repo root):
+#   docker build -t pulsestream-backend:latest .
+#   docker build -t pulsestream-frontend:latest ./frontend
+#
+# Run (from repo root):
+#   docker compose -f infra/docker-compose.prod.yml --env-file .env.production up -d
+
+name: pulsestream-prod
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  kafka:
+    image: apache/kafka:3.9.0
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:29092,PLAINTEXT_HOST://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 6
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+    # NOTE: PLAINTEXT_HOST is only useful for host-side tooling; do not expose
+    # 9092 publicly. No ports section here on purpose.
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    # Analytics counters/heartbeats are ephemeral by design (PG is truth), so
+    # persistence is intentionally disabled to keep latency predictable.
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "5m", max-file: "3" } }
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: pulsestream-backend:latest
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS e.g. https://dashboard.example.com}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "5" } }
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  frontend:
+    image: pulsestream-frontend:latest
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "5m", max-file: "3" } }
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -T 3 -O /dev/null http://127.0.0.1:80/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  persistence-worker:
+    image: pulsestream-backend:latest
+    command: ["python", "-m", "worker.persistence_worker"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "scripts/worker_healthcheck.py", "persistence"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  analytics-worker:
+    image: pulsestream-backend:latest
+    command: ["python", "-m", "worker.analytics_worker"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      REDIS_URL: redis://redis:6379/0
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    logging: { driver: json-file, options: { max-size: "10m", max-file: "3" } }
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "scripts/worker_healthcheck.py", "analytics"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata:

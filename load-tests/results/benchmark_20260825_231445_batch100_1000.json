@@ -1,0 +1,84 @@
+{
+  "step": "batch100_1000",
+  "target_events_per_sec": 1000,
+  "mode": "batch",
+  "batch_size": 100,
+  "concurrency": 16,
+  "duration_s": 8,
+  "client": {
+    "target_events_per_sec": 1000,
+    "sent_requests": 80,
+    "ok_events": 8000,
+    "wall_seconds": 7.983,
+    "offered_requests_per_sec": 10.0,
+    "achieved_events_per_sec": 1002.1,
+    "achieved_requests_per_sec": 10.02,
+    "completion_tail_seconds": 0.0,
+    "behind_schedule": false,
+    "status_breakdown": {
+      "201": 80
+    },
+    "latency_ms": {
+      "p50": 80.18,
+      "p90": 123.39,
+      "p95": 138.81,
+      "p99": 150.27,
+      "max": 151.14,
+      "samples": 80
+    },
+    "error_rate_pct": 0.0
+  },
+  "drain_seconds_until_persistence_lag_zero": 16.78,
+  "persisted_rows_delta": 8000,
+  "persistence_rate_per_sec": 307.6,
+  "db_before": {
+    "rows": 2601,
+    "total_relation_bytes": 1122304
+  },
+  "db_after": {
+    "rows": 10601,
+    "total_relation_bytes": 4177920
+  },
+  "docker_stats_mid_or_end": {
+    "pulsestream-api": {
+      "cpu": "0.29%",
+      "mem": "68.07MiB / 7.593GiB",
+      "net": "11.9MB / 21.5MB"
+    },
+    "pulsestream-persistence-worker": {
+      "cpu": "0.36%",
+      "mem": "56.14MiB / 7.593GiB",
+      "net": "14MB / 13.2MB"
+    },
+    "pulsestream-analytics-worker": {
+      "cpu": "0.65%",
+      "mem": "50.13MiB / 7.593GiB",
+      "net": "12.3MB / 13.6MB"
+    },
+    "pulsestream-frontend": {
+      "cpu": "0.00%",
+      "mem": "21.05MiB / 7.593GiB",
+      "net": "19.6kB / 126B"
+    },
+    "pulsestream-redis": {
+      "cpu": "2.44%",
+      "mem": "7.891MiB / 7.593GiB",
+      "net": "10.1MB / 4.45MB"
+    },
+    "pulsestream-kafka": {
+      "cpu": "1.83%",
+      "mem": "932.8MiB / 7.593GiB",
+      "net": "16MB / 18.9MB"
+    },
+    "pulsestream-postgres": {
+      "cpu": "0.13%",
+      "mem": "41.22MiB / 7.593GiB",
+      "net": "13.8MB / 7.21MB"
+    }
+  },
+  "lag_samples_count": 13,
+  "lag_samples_max_seen": {
+    "persistence-workers": 720,
+    "analytics-workers": 366
+  }
+}

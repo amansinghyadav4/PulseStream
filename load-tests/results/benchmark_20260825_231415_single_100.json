@@ -1,0 +1,84 @@
+{
+  "step": "single_100",
+  "target_events_per_sec": 100,
+  "mode": "single",
+  "batch_size": 1,
+  "concurrency": 16,
+  "duration_s": 8,
+  "client": {
+    "target_events_per_sec": 100,
+    "sent_requests": 784,
+    "ok_events": 784,
+    "wall_seconds": 18.29,
+    "offered_requests_per_sec": 98.0,
+    "achieved_events_per_sec": 42.9,
+    "achieved_requests_per_sec": 42.87,
+    "completion_tail_seconds": 10.29,
+    "behind_schedule": true,
+    "status_breakdown": {
+      "201": 784
+    },
+    "latency_ms": {
+      "p50": 168.41,
+      "p90": 923.99,
+      "p95": 1420.5,
+      "p99": 2588.1,
+      "max": 7251.47,
+      "samples": 784
+    },
+    "error_rate_pct": 0.0
+  },
+  "drain_seconds_until_persistence_lag_zero": 0.7,
+  "persisted_rows_delta": 784,
+  "persistence_rate_per_sec": 39.4,
+  "db_before": {
+    "rows": 1817,
+    "total_relation_bytes": 811008
+  },
+  "db_after": {
+    "rows": 2601,
+    "total_relation_bytes": 1122304
+  },
+  "docker_stats_mid_or_end": {
+    "pulsestream-api": {
+      "cpu": "0.43%",
+      "mem": "67.7MiB / 7.593GiB",
+      "net": "7.32MB / 9.95MB"
+    },
+    "pulsestream-persistence-worker": {
+      "cpu": "0.20%",
+      "mem": "55.45MiB / 7.593GiB",
+      "net": "4.56MB / 4.17MB"
+    },
+    "pulsestream-analytics-worker": {
+      "cpu": "0.51%",
+      "mem": "49.03MiB / 7.593GiB",
+      "net": "4.15MB / 4.28MB"
+    },
+    "pulsestream-frontend": {
+      "cpu": "0.00%",
+      "mem": "20.36MiB / 7.593GiB",
+      "net": "19.6kB / 126B"
+    },
+    "pulsestream-redis": {
+      "cpu": "2.96%",
+      "mem": "6.613MiB / 7.593GiB",
+      "net": "3.05MB / 1.55MB"
+    },
+    "pulsestream-kafka": {
+      "cpu": "1.99%",
+      "mem": "629.1MiB / 7.593GiB",
+      "net": "5.98MB / 7.15MB"
+    },
+    "pulsestream-postgres": {
+      "cpu": "0.03%",
+      "mem": "32.82MiB / 7.593GiB",
+      "net": "4.64MB / 2.76MB"
+    }
+  },
+  "lag_samples_count": 9,
+  "lag_samples_max_seen": {
+    "persistence-workers": 0,
+    "analytics-workers": 0
+  }
+}

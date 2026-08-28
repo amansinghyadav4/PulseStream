@@ -1,0 +1,125 @@
+/* Demo Store — intentionally simple, light e-commerce styling.
+   It should look like a plausible shop, NOT like the PulseStream dashboard. */
+
+:root {
+  --ink: #1f2937;
+  --sub: #6b7280;
+  --line: #e5e7eb;
+  --paper: #ffffff;
+  --wash: #f9fafb;
+  --brand: #2563eb;
+  --brand-dark: #1d4ed8;
+  --ok: #16a34a;
+  --bad: #dc2626;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  background: var(--wash);
+  color: var(--ink);
+}
+
+.store {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+.store-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.store-title { margin: 0; font-size: 22px; letter-spacing: -0.01em; }
+.store-tagline { margin: 2px 0 0; color: var(--sub); font-size: 13px; }
+
+.cart-chip {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* PulseStream status strip */
+.ps-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 18px 0 22px;
+  font-size: 13px;
+}
+
+.ps-brand { font-weight: 700; }
+.ps-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.ps-ok { background: var(--ok); }
+.ps-bad { background: var(--bad); }
+.ps-idle { background: #9ca3af; }
+
+.ps-stat b { font-variant-numeric: tabular-nums; }
+.ps-error { color: var(--bad); font-size: 12.5px; width: 100%; margin: 4px 0 0; }
+
+/* Products */
+.section-title { font-size: 15px; margin: 26px 0 12px; }
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.product-card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.product-name { font-weight: 600; font-size: 14.5px; }
+.product-price { color: var(--sub); font-size: 13px; }
+
+.btn {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+.btn:hover:not(:disabled) { background: var(--wash); border-color: #d1d5db; }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: white; }
+.btn.primary:hover:not(:disabled) { background: var(--brand-dark); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.product-actions { display: flex; gap: 8px; }
+
+/* Cart + checkout */
+.panel {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 18px;
+  margin-top: 22px;
+}
+
+.cart-line { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; }
+.cart-line .muted { color: var(--sub); }
+.cart-total { display: flex; justify-content: space-between; font-weight: 700; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 10px; }
+.empty { color: var(--sub); font-size: 14px; }
+
+.checkout-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+.order-note { color: var(--ok); font-size: 13.5px; margin: 10px 0 0; }
+
+footer.store-footer { margin-top: 40px; color: var(--sub); font-size: 12px; line-height: 1.6; }

@@ -1,0 +1,28 @@
+# Demo Store — static SPA + proxy to the PulseStream API.
+# TEMPLATE: nginx envsubst injects DEMO_API_KEY (local development key) so the
+# store authenticates WITHOUT the browser ever containing a secret.
+# Production: set PULSESTREAM_API_KEYS to real secrets; they remain server-side.
+server {
+  listen 80;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json;
+
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+
+  location /api/ {
+    resolver 127.0.0.11 valid=10s ipv6=off;
+    set $api_upstream http://api:8000;
+    proxy_pass $api_upstream;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    # empty value removes the header entirely => auth-off mode works unchanged
+    proxy_set_header X-API-Key "${DEMO_API_KEY}";
+  }
+}

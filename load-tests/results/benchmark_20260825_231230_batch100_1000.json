@@ -1,0 +1,84 @@
+{
+  "step": "batch100_1000",
+  "target_events_per_sec": 1000,
+  "mode": "batch",
+  "batch_size": 100,
+  "concurrency": 16,
+  "duration_s": 8,
+  "client": {
+    "target_events_per_sec": 1000,
+    "sent_requests": 80,
+    "ok_events": 0,
+    "wall_seconds": 7.961,
+    "offered_requests_per_sec": 10.0,
+    "achieved_events_per_sec": 0.0,
+    "achieved_requests_per_sec": 10.05,
+    "completion_tail_seconds": 0.0,
+    "behind_schedule": false,
+    "status_breakdown": {
+      "422": 80
+    },
+    "latency_ms": {
+      "p50": 58.46,
+      "p90": 64.53,
+      "p95": 71.66,
+      "p99": 77.34,
+      "max": 83.23,
+      "samples": 80
+    },
+    "error_rate_pct": 100.0
+  },
+  "drain_seconds_until_persistence_lag_zero": 0.77,
+  "persisted_rows_delta": 0,
+  "persistence_rate_per_sec": 0.0,
+  "db_before": {
+    "rows": 1817,
+    "total_relation_bytes": 811008
+  },
+  "db_after": {
+    "rows": 1817,
+    "total_relation_bytes": 811008
+  },
+  "docker_stats_mid_or_end": {
+    "pulsestream-api": {
+      "cpu": "0.48%",
+      "mem": "67.71MiB / 7.593GiB",
+      "net": "6.01MB / 7.84MB"
+    },
+    "pulsestream-persistence-worker": {
+      "cpu": "0.22%",
+      "mem": "55.08MiB / 7.593GiB",
+      "net": "3.18MB / 2.9MB"
+    },
+    "pulsestream-analytics-worker": {
+      "cpu": "0.27%",
+      "mem": "50.29MiB / 7.593GiB",
+      "net": "2.89MB / 2.97MB"
+    },
+    "pulsestream-frontend": {
+      "cpu": "0.00%",
+      "mem": "20.84MiB / 7.593GiB",
+      "net": "19.6kB / 126B"
+    },
+    "pulsestream-redis": {
+      "cpu": "0.76%",
+      "mem": "5.609MiB / 7.593GiB",
+      "net": "2.22MB / 1.14MB"
+    },
+    "pulsestream-kafka": {
+      "cpu": "1.82%",
+      "mem": "516.3MiB / 7.593GiB",
+      "net": "4.24MB / 5.08MB"
+    },
+    "pulsestream-postgres": {
+      "cpu": "0.02%",
+      "mem": "31.98MiB / 7.593GiB",
+      "net": "3.24MB / 1.93MB"
+    }
+  },
+  "lag_samples_count": 5,
+  "lag_samples_max_seen": {
+    "persistence-workers": 0,
+    "analytics-workers": 0
+  }
+}
