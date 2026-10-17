@@ -83,25 +83,6 @@ class KafkaDlqProducer:
         except Exception:
             logger.exception("failed to send to dlq", extra={"topic": self._topic, "dlq_key": key or "dlq"})
 
-    async def send_event(self, event_data: dict[str, Any], error: str) -> None:
-        """Convenience: send deserialized event dict to DLQ."""
-        try:
-            # serialize event_data without payload logging? We must not log payload, but we need to send it.
-            # Use json with same canonical fields, error included.
-            # We avoid logging payload here.
-            payload = json.dumps(
-                {
-                    "event_id": str(event_data.get("event_id", "")),
-                    "event_type": event_data.get("event_type", ""),
-                    "source": event_data.get("source", ""),
-                    "error": error,
-                }
-            ).encode("utf-8")
-            # For minimal Phase 2D, send the full original serialized form if available via re-serialization? Simpler: send payload as minimal envelope.
-            await self.send(payload, error, key=str(event_data.get("event_id", "dlq")))
-        except Exception:
-            logger.exception("failed to send event to dlq", extra={"topic": self._topic})
-
 
 settings = get_settings()
 dlq_publisher = KafkaDlqProducer(

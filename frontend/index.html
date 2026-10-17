@@ -3,13 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0a0e14" />
+    <meta name="theme-color" content="#0a0d13" />
     <meta name="color-scheme" content="dark" />
     <title>PulseStream · Real-Time Analytics</title>
-    <style>html { background: #0a0e14; }</style>
+    <style>html { background: #0a0d13; }</style>
+    <script>
+      /* Apply the visitor's landing theme BEFORE first paint so the page never
+         flashes the wrong theme. Stored choice wins, then the OS preference;
+         the dashboard keeps its own (always dark) tokens — this attribute is
+         only ever consumed by the .ls landing stylesheet. */
+      (function () {
+        try {
+          var saved = window.localStorage.getItem("ps_theme");
+          var theme =
+            saved === "light" || saved === "dark"
+              ? saved
+              : window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          var root = document.documentElement;
+          root.setAttribute("data-ps-theme", theme);
+          var onLanding = (window.location.hash || "").indexOf("#/landing") === 0;
+          if (onLanding) {
+            var ground = theme === "dark" ? "#141110" : "#eeeade";
+            root.style.backgroundColor = ground;
+            root.style.colorScheme = theme;
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute("content", ground);
+          }
+        } catch (e) {
+          /* storage/matchMedia unavailable — the light default applies */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

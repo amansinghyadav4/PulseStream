@@ -15,7 +15,7 @@ A small number of meaningful topics is intentional per `PulseStream_PROJECT_SPEC
 
 | Setting | Value | Where | Purpose |
 |---------|-------|-------|---------|
-| `KAFKA_NUM_PARTITIONS` | `6` | `docker-compose.yml:42` `KAFKA_NUM_PARTITIONS: 6` and `app/core/config.py:24` `kafka_num_partitions=6` / `.env.example:11` | Number of partitions for auto-created topics. 6 allows parallel consumption by up to 6 workers per consumer group while keeping dev overhead low. |
+| `KAFKA_NUM_PARTITIONS` | `6` | `docker-compose.yml:38` `KAFKA_NUM_PARTITIONS: 6` | Number of partitions for auto-created topics. 6 allows parallel consumption by up to 6 workers per consumer group while keeping dev overhead low. |
 | `KAFKA_DEFAULT_REPLICATION_FACTOR` | `1` | `docker-compose.yml:43` | Replication for auto-created topics in single-node dev cluster. Production would use 3. |
 | `KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR` | `1` | `docker-compose.yml:32` | Required for single-node KRaft (otherwise broker fails to start). |
 

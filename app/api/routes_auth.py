@@ -9,9 +9,13 @@ Endpoints: signup, login, logout, me, forgot-password, reset-password.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request, Response, status
+import logging
+
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import security
 from app.core.config import get_settings
 from app.core.csrf import new_csrf_token, require_csrf
 from app.core.errors import DomainError
@@ -25,13 +29,21 @@ from app.schemas.auth import (
     MeOut,
     MessageOut,
     OrganizationOut,
+    ProvidersOut,
     ResetPasswordIn,
     SignupIn,
     UserOut,
 )
-from app.services import auth_service, tenant_service
+from app.services import auth_service, google_oauth, tenant_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Short-lived, httpOnly state cookie for the Google handshake. Path-scoped to
+# the OAuth endpoints so it is never sent with ordinary API traffic.
+OAUTH_STATE_COOKIE = "ps_oauth_state"
+OAUTH_COOKIE_PATH = "/api/v1/auth/google"
 
 
 def _set_session_cookies(response: Response, session_token: str, csrf_value: str) -> None:
@@ -194,3 +206,112 @@ async def reset_password(
             message="reset token is invalid or has expired",
         )
     return MessageOut(message="password has been reset")
+
+
+# ---------------------------------------------------------------------------
+# Optional OAuth provider (Google). Additive: password signup/login above are
+# untouched, and the whole surface stays dark unless credentials are configured.
+# ---------------------------------------------------------------------------
+
+
+@router.get("/providers", response_model=ProvidersOut)
+async def providers() -> ProvidersOut:
+    """Report which optional sign-in providers are configured. Unauthenticated
+    and side-effect free: the SPA uses it to decide whether to render a Google
+    button at all, so an unconfigured deployment never shows a dead button."""
+    return ProvidersOut(google=get_settings().google_oauth_enabled)
+
+
+def _clear_oauth_state(response: Response) -> None:
+    response.delete_cookie(OAUTH_STATE_COOKIE, path=OAUTH_COOKIE_PATH)
+
+
+def _oauth_unavailable() -> DomainError:
+    return DomainError(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        code="oauth_unavailable",
+        message="Google sign-in is not configured on this deployment",
+    )
+
+
+def _oauth_redirect(code: str, next_route: str = "login") -> RedirectResponse:
+    response = RedirectResponse(url=google_oauth.error_redirect(get_settings(), code, next_route), status_code=302)
+    _clear_oauth_state(response)
+    return response
+
+
+@router.get("/google/start", dependencies=[Depends(rate_limit("google_start"))])
+async def google_start(next: str = Query(default="login")) -> RedirectResponse:
+    """Begin the Google handshake: set the signed state cookie and send the
+    browser to Google. Only the configured redirect URI is ever used."""
+    settings = get_settings()
+    if not settings.google_oauth_enabled or not settings.google_oauth_redirect_uri_valid:
+        raise _oauth_unavailable()
+    state = google_oauth.build_state(next, settings)
+    response = RedirectResponse(url=google_oauth.authorize_url(settings, state), status_code=302)
+    response.set_cookie(
+        OAUTH_STATE_COOKIE,
+        state,
+        max_age=max(60, settings.google_oauth_state_ttl_seconds),
+        httponly=True,
+        secure=settings.session_cookie_secure_effective,
+        samesite="lax",  # sent on Google's top-level redirect back to us
+        path=OAUTH_COOKIE_PATH,
+    )
+    return response
+
+
+@router.get("/google/callback")
+async def google_callback(
+    request: Request,
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    session: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
+    """Complete the Google handshake. Any failure redirects back to the SPA with
+    an `oauth_error` code and NO session — a failed sign-in never half-succeeds."""
+    settings = get_settings()
+    if not settings.google_oauth_enabled or not settings.google_oauth_redirect_uri_valid:
+        raise _oauth_unavailable()
+
+    payload = google_oauth.parse_state(state or "", settings)
+    next_route = str((payload or {}).get("r") or "login")
+
+    if error:
+        logger.info("google sign-in cancelled", extra={"provider": "google"})
+        return _oauth_redirect("oauth_failed", next_route)
+
+    # State must be signed, unexpired AND identical to the cookie we set.
+    cookie_state = request.cookies.get(OAUTH_STATE_COOKIE)
+    if payload is None or not cookie_state or not security.tokens_equal(cookie_state, state or ""):
+        logger.warning("google sign-in rejected: invalid state")
+        return _oauth_redirect("oauth_state_invalid", next_route)
+
+    if not code:
+        return _oauth_redirect("oauth_failed", next_route)
+
+    try:
+        tokens = await google_oauth.exchange_code(code, settings)
+        claims = google_oauth.claims_from_id_token(tokens["id_token"])
+    except Exception:  # noqa: BLE001 — any transport/parse failure is the same outcome
+        logger.warning("google token exchange failed", exc_info=True)
+        return _oauth_redirect("oauth_exchange_failed", next_route)
+
+    ok, error_code = google_oauth.validate_claims(claims, settings)
+    if not ok:
+        return _oauth_redirect(error_code or "oauth_failed", next_route)
+
+    user, error_code = await google_oauth.resolve_user(session, claims)
+    if user is None:
+        return _oauth_redirect(error_code or "oauth_failed", next_route)
+
+    # Same session mechanism as password login — cookie + CSRF, nothing new.
+    _, raw_token = await auth_service.create_session(
+        session, user=user, ttl_seconds=settings.session_ttl_seconds,
+        user_agent=request.headers.get("user-agent"), ip_address=_client_ip(request),
+    )
+    response = RedirectResponse(url=google_oauth.success_redirect(settings), status_code=302)
+    _clear_oauth_state(response)
+    _set_session_cookies(response, raw_token, new_csrf_token())
+    return response

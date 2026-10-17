@@ -99,3 +99,12 @@ class MessageOut(BaseModel):
     status: str = "ok"
     message: str
     reset_token: str | None = None
+
+
+class ProvidersOut(BaseModel):
+    """Which optional sign-in providers this deployment actually has configured.
+
+    The SPA renders a provider button only when it is reported here as true, so
+    a missing configuration hides the button instead of offering a dead flow."""
+
+    google: bool = False

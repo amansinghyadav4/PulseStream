@@ -61,9 +61,6 @@ def scrape() -> tuple[bytes, str]:
     except Exception:
         pass
 
-    async def _noop() -> None:  # pragma: no cover - never called
-        pass
-
     # Heartbeat freshness requires an async redis read; /metrics handler performs it
     # before calling scrape_values(). Here we only render.
     return generate_latest(registry), CONTENT_TYPE_LATEST
@@ -99,11 +96,8 @@ class HttpRequestMetricsMiddleware:
                 status_holder["status"] = message["status"]
                 # Prefer route template once router resolved it
                 route = scope.get("route")
-                if route is not None and getattr(route, "path", None):
-                    nonlocal_path = route.path
-                    if isinstance(nonlocal_path, str):
-                        nonlocal_scope = scope
-                        nonlocal_scope["metrics_path"] = nonlocal_path
+                if route is not None and isinstance(getattr(route, "path", None), str):
+                    scope["metrics_path"] = route.path
             await send(message)
 
         try:

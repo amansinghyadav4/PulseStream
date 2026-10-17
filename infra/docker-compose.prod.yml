@@ -81,6 +81,14 @@ services:
       REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: ${CORS_ORIGINS:?set CORS_ORIGINS e.g. https://dashboard.example.com}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # Google sign-in (optional). Empty client id/secret disables the provider;
+      # the API reports it unavailable and the SPA hides the button. An empty
+      # FRONTEND_BASE_URL makes the post-handshake redirect relative (same
+      # origin), which is safe. Setup: docs/google-oauth.md
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GOOGLE_OAUTH_REDIRECT_URI: ${GOOGLE_OAUTH_REDIRECT_URI:-}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-}
     ports:
       - "${API_PORT:-8000}:8000"
     restart: unless-stopped

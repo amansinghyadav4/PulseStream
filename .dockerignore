@@ -2,8 +2,6 @@
 .git
 .gitignore
 .pytest_cache
-.tmp
-.claude
 app.egg-info
 frontend/node_modules
 frontend/dist
@@ -11,10 +9,6 @@ load-tests/results
 docs
 *.md
 .env
-b5.json
 live_*.py
-probe_*.json
-probe_tmp.py
-_probe_tmp.py
 __pycache__
 *.pyc

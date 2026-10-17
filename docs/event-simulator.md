@@ -53,8 +53,8 @@ future sends are dropped, already-sent requests are counted.
 
 ## Implementation notes
 
-- Frontend-only (`frontend/src/lib/eventFactory.ts`, `simulator.ts`,
-  `components/EventSimulator.tsx`). No new dependencies; charts/design system
+- Frontend-only (`frontend/src/lib/eventFactory.js`, `simulator.js`,
+  `components/EventSimulator.jsx`). No new dependencies; charts/design system
   unchanged.
 - Generated payloads follow the exact `EventIn` contract: UUIDv4 `event_id`,
   lowercase dotted `event_type` (validated by `^[a-z][a-z0-9_.]*$` server-side),

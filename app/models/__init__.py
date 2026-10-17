@@ -12,6 +12,7 @@ from app.models.membership import Membership
 from app.models.api_credential import ApiCredential
 from app.models.session import Session
 from app.models.password_reset import PasswordResetToken
+from app.models.user_identity import UserIdentity
 from app.models.event import Event
 from app.models.event_failure import EventFailure
 
@@ -22,6 +23,7 @@ __all__ = [
     "ApiCredential",
     "Session",
     "PasswordResetToken",
+    "UserIdentity",
     "Event",
     "EventFailure",
 ]

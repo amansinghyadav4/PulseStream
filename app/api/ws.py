@@ -102,17 +102,6 @@ class ConnectionManager:
                     self._drop(ws, organization_id)
         self._update_gauge()
 
-    async def disconnect_all(self) -> None:
-        async with self._lock:
-            conns = [ws for room in self._rooms.values() for ws in room]
-            self._rooms.clear()
-        for ws in conns:
-            try:
-                await ws.close()
-            except Exception:
-                pass
-        self._update_gauge()
-
     def reset(self) -> None:
         """Drop all rooms without closing sockets — test helper only."""
         self._rooms.clear()

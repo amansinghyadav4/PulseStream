@@ -1718,7 +1718,7 @@ Pixel-level pass against the stated type scale (titles ~26/700, metric values 24
 
 ## §22 — Multi-tenant DB foundation (Increment A) (2026-08-28)
 
-First increment of the single-tenant → multi-tenant SaaS evolution. Scope was deliberately narrow: **database foundation only**, non-destructive, no auth logic, no frontend. SPEC scopes PulseStream as single-tenant and must not change (CLAUDE.md), so all tenancy decisions are recorded here.
+First increment of the single-tenant → multi-tenant SaaS evolution. Scope was deliberately narrow: **database foundation only**, non-destructive, no auth logic, no frontend. SPEC scopes PulseStream as single-tenant and must not change (AGENTS.md), so all tenancy decisions are recorded here.
 
 **Alembic introduced (was: `Base.metadata.create_all`).** `alembic/env.py` runs through the app's own async engine (asyncpg) and reads `DATABASE_URL` from `Settings` — same connection string as the app, no creds in `alembic.ini`. The single migration `0001_multitenant_foundation` is **guarded/idempotent** (inspects the live schema before each op) so it safely *adopts* a database whose base tables were already created by `create_all` (the docker `pgdata` volume) — it also creates `events`/`event_failures` from scratch on a fresh Alembic-only DB. Added `alembic` to `requirements.txt` (prod must be able to migrate). `create_all` still runs in dev/tests as a convenience and is now a no-op for existing tables.
 
@@ -2030,3 +2030,83 @@ Every animated SVG carries a `@media (prefers-reduced-motion: reduce)` block tha
 **Honesty compromises.** OmniRoute leans on headline statistics; PulseStream cannot, because most of ours were never measured. The "Measured, not claimed" section quotes only the figures the load-test run actually produced (batch ≈ 4.8K events/s at p95 1.5 s, ≈ 7K saturated, single-event ≈ 50/s, persistence drain ≈ 370/s), keeps the machine-specific caveat, and links `docs/load-testing.md`. The Tests section lists commands and no counts — the backend suite run for this pass never completed, and a plausible-looking number would have been invented. No uptime claim, no fabricated logos.
 
 **Assets added:** `docs/assets/{hero,pipeline,divider}.svg` and `docs/screenshots/{landing,overview,events,sources,pipeline,simulator}.png`. `README.md` went 176 → 396 lines, but most of that is structure (tables, `<details>`, image markup) rather than prose to read.
+
+---
+
+# 20. TypeScript → JavaScript language migration
+
+**Scope.** Both frontend packages (`frontend/` dashboard, `demo-store/`) were converted from TypeScript to plain JavaScript: `.ts` → `.js`, `.tsx` → `.jsx`. The Python/FastAPI backend was not touched — this was a language migration of the frontend only, explicitly NOT a rewrite, refactor, or feature change. All application logic, component behavior, routes, tests, and UI are byte-for-byte identical except for removed TS syntax.
+
+**What was removed (and only this).** Type annotations on params/returns/locals, `interface`/`type` declarations, `import type` lines, generics on hooks and API wrappers (`useState<T>`, `api.get<T>`), `as` assertions and `as const`, non-null `!` postfixes (kept prefix `!` and `?.`/`??` which are runtime JS), access modifiers (`private`), and one type predicate (`u is string`). Vite resolves extensionless imports, so no import statement needed touching — verified no `@/` alias and no extension-bearing imports existed.
+
+**The one non-mechanical construct.** `demo-store/src/lib/pulsestream.ts` used a TS parameter property: `constructor(private baseUrl: string = "/api/v1") {}`. JavaScript has no equivalent, so this became `constructor(baseUrl = "/api/v1") { this.baseUrl = baseUrl; }` — the single line added anywhere in the migration to preserve behavior. Similarly, `private` class fields in `Simulator` and `PulseStreamClient` became plain public fields; with tsconfig's `useDefineForClassFields: true` semantics the emitted property behavior is unchanged (they were only ever accessed within the class anyway).
+
+**Pure-type files deleted.** `frontend/src/types/{apiKey,auth,metrics}.ts` and `demo-store/src/vite-env.d.ts` contained only interfaces/type aliases — no runtime code — so they were deleted along with their type-only imports. `import.meta.env` in `pulsestream.js` still works at runtime because Vite injects it regardless of the ambient declaration file; only editor typing for `VITE_PULSESTREAM_API` is lost, which plain JS cannot express without JSDoc.
+
+**Configuration changes.**
+- `vite.config.ts` → `vite.config.js` in both projects (content identical — no TS syntax beyond the extension).
+- `tsconfig.json` (frontend + demo-store) and `frontend/tsconfig.node.json` deleted — no longer referenced.
+- `package.json` (both): `build` script `tsc && vite build` → `vite build`; `lint` script (`tsc --noEmit`) removed; devDeps `typescript`, `@types/react`, `@types/react-dom` removed. No runtime dependency changed.
+- `index.html` (both): entry `/src/main.tsx` → `/src/main.jsx`.
+- Docs updated where they described the current state: README badge + stack table + test commands, `docs/dashboard.md`, `docs/event-simulator.md`. Historical entries in this file intentionally keep their `.tsx`/`tsc` mentions — they accurately describe the state at the time they were written.
+
+**Safety net relied on.** esbuild's `.js`/`.jsx` loaders do not strip TS types — any leftover annotation fails the vitest run and `vite build` outright. So "tests + build pass" doubles as a syntactic-completeness proof: there is no way a half-converted file passes. This is worth remembering for any future TS→JS work: the toolchain is the verifier.
+
+**Validation actually run (2026-09-14).**
+- `find frontend demo-store -name '*.ts|*.tsx|*.mts|*.cts'` (excluding node_modules) → zero files.
+- `cd frontend && npm test` → 81 tests / 9 files, all passed.
+- `cd demo-store && npm test` → 15 tests / 2 files, all passed.
+- `cd frontend && npm run build` → succeeded (83 modules, 278.60 kB JS / 83.08 kB gzip).
+- `cd demo-store && npm run build` → succeeded (33 modules, 149.40 kB JS / 48.29 kB gzip).
+- Backend pytest suite (first run, Docker services down): 130 passed, 70 skipped, 9 failed + 3 errors — every failure was `ConnectionRefusedError` against the Dockerized Kafka/Redis, not a code defect. Re-run on 2026-09-14 with the full Docker stack up (`docker compose up -d`, all 8 containers healthy): **209 passed, 0 failed** in 121.66s. `git status` confirms zero backend files were modified by the migration. A live behavioral regression pass (signup/login/logout session flow, API-key auth accept/reject, ingestion → Kafka → workers → Redis → PostgreSQL, org-scoped WebSocket metrics stream, demo-store nginx key injection, both JS bundles served from rebuilt Docker images) found no migration-related regression.
+
+**Trade-off accepted.** Type-safety is gone: a typo in a prop name or a shape mismatch with the backend now fails at runtime (or silently renders "Unavailable") instead of at compile time. The mitigation is the test suite — 96 frontend tests covering rendering, auth, API-key flows, the explorer, failures view, panels, simulator engine and event factory — plus the fact that the API contract is enforced server-side by Pydantic regardless. For a portfolio project where the goal is a working, understandable system, the simpler toolchain (no tsc, no @types, no tsconfig) was judged worth it; for a team project with many contributors, strict TS would be the better choice.
+
+## §36 — Premium retheme: old-money dark + editorial serif (2026-09-15)
+
+**Goal.** Redesign the frontend as a premium, production-level SaaS surface: "old money" colour theme, dark mode, editorial landing inspired by (not copied from) syftanalytics.com. Constraint chosen up front: keep every existing class name and all component functionality — the redesign is a token-level retheme plus a landing-page restyle, not a markup rewrite.
+
+**Fonts.** Two new runtime deps: `@fontsource-variable/fraunces` (display serif — the "Syft signature") and `@fontsource-variable/inter` (UI sans), imported in `main.jsx` before the stylesheets so tokens can reference them. Self-hosted via fontsource deliberately: the frontend Docker image is an offline nginx build — a Google Fonts CDN link would render fallbacks (or fail) inside the image. Build output confirms the woff2 files are hashed into `dist/assets/`.
+
+**Design tokens (`:root` in styles.css).** Replaced the graphite-blue set wholesale:
+- Surfaces: warm ink-black/espresso (`#0d0b09`, `#110f0b`, `#14110d` …) instead of blue-graphite (`#0b0d10` family). Warm blacks read as leather/walnut rather than IDE.
+- Text: ivory/champagne (`#ede6d6` / `#b0a791` / `#7b7260`).
+- Accent: champagne gold `#c9a962` (strong `#e2ca8f`), plus new `--accent-border` and `--on-accent` (deep espresso `#161209` for text sitting on gold — white-on-gold looked cheap).
+- Status: muted emerald `#5ea87a`, brass `#d2a24c`, oxblood `#d16a5a`; purple demoted to a muted mauve `#9d8fb8`.
+- New `--font-display` (Fraunces) alongside `--font-sans` (Inter) and the unchanged mono stack.
+
+**Hardcoded-value sweep.** ~36 hardcoded `rgba(77,141,255,…)` blues across styles.css/auth.css/saas.css replaced with the gold equivalent `rgba(201,169,98,…)`; every remaining literal status colour (old GitHub green/red `#3fb950`/`#f85149`, cool-white headlines `#f3f6fa`, cold scrollbar, `rgba(255,255,255,…)` tints) swapped for warm equivalents. Verified by grep: zero matches for any old blue/graphite hex afterwards. Lesson: a token system is only as good as its sweep — 30+ values had leaked past `--accent`.
+
+**Typography discipline.** Serif is used sparingly and only for display moments: `.page-header h1`, `.hero-title h1`, `.ls-h1`, `.ls-h2`, `.ls-brand-name`, auth aside headline — each with explicit `font-variation-settings` (`"SOFT" 0, "WONK" 0/1, "opsz" …`) because Fraunces' variable axes (especially optical size) otherwise render inconsistently across sizes. Body/UI stays Inter; numbers stay mono. Sans-serif weight on headings was lowered (700→500-600) — serif weight reads heavier per point.
+
+**Landing page.** Kept the whole `.ls-*` class inventory and all section structure (the test suite pins content anchors: hero copy, "Multi-tenant isolation", "How PulseStream works", "Secure API keys", topology node names, CTA labels). Restyled instead: italic gold hero accent line, 56px Fraunces hero with `WONK 1` on the accent (the one deliberate "old-style quirk" — wonky serifs signal editorial, not system, type), gold gradient primary buttons, hairline-gradient rules (eyebrow rules, the `.ls-final` engraved rule above the closing CTA), warm blurred chrome (`rgba(13,11,9,…)`), slower eased reveals (0.7s, 18px travel). JSX changes were copy-only plus two new section eyebrows; `landing.test.jsx` needed no edits.
+
+**Dashboard chrome.** Topbar/sidebar blur backgrounds warmed, KPI values re-weighted (700→600, serif headers), `.btn.accent`/`.danger` and the incident banner re-pointed at the new status palette. No layout, density, or component changes — the observability density that already existed is what makes it look "production".
+
+**Validation actually run (2026-09-15).** `cd frontend && npx vitest run` → 81 tests / 9 files, all passed. `npx vite build` → succeeded; fonts bundled (fraunces latin 36.62 kB, inter latin 48.26 kB among the hashed woff2 assets), CSS 71.53 kB / 13.52 kB gzip, JS 278.87 kB / 83.15 kB gzip.
+
+**Deploy note.** The running Docker frontend serves a built image — the new bundle requires `docker compose build frontend && docker compose up -d frontend` (user runs it). `prefers-reduced-motion` blocks were preserved through every animation change.
+
+**Trade-off accepted.** Gold-on-dark has lower maximum contrast than the old blue — acceptable for accents because all reading text stays ivory-on-espresso (≥ 12:1), and accent text uses the lighter `--accent-strong`. Fraunces is heavier than Inter per point size, so heading sizes were tuned down slightly rather than up.
+
+## §37 — Landing page rebuild: light editorial theme, scroll story, dependency-free motion (2026-09-15)
+
+**Goal.** Rebuild ONLY the landing page to premium SaaS quality (visual/UX language inspired by syftanalytics.com, nothing copied) around a fixed three-colour brand palette: muted sage `#757D6F`, warm cream `#EEEAD7`, deep burgundy `#6D0808`. Everything else — auth, dashboard, backend, simulator — untouched.
+
+**Light landing + dark dashboard coexistence.** The dashboard owns the dark espresso/gold tokens in `:root`; the landing now ships its own stylesheet `src/styles/landing.css` with every token scoped under `.ls` (all `--ls-*`), so the two themes never bleed. The old ~600-line `.ls-*` block was removed from styles.css (dashboard portion byte-identical, verified by reading the full retained range before the rewrite). `document.documentElement.style.backgroundColor` is swapped to cream on mount and restored on unmount so the dark `index.html` ground never flashes behind the light page.
+
+**File structure.** `LandingPage.jsx` is now a ~60-line composition root; sections live in `src/components/landing/`: `Nav.jsx`, `Hero.jsx` (exports `ProductMock`), `Marquee.jsx`, `Problem.jsx`, `PipelineSection.jsx`, `AnalyticsShowcase.jsx`, `BentoFeatures.jsx`, `DevSection.jsx`, `CtaSection.jsx`, `Footer.jsx`, `shared.jsx` (SECTION ids, `scrollToSection`, `metricText`/`ratePct`, `Reveal`, `MagneticButton`), `motion.js` (hooks).
+
+**Scroll story.** Hero → capability marquee → Problem (editorial pull-quote + hairline pain rows) → Pipeline (the signature dark section: sticky copy column with five stage dots, full topology diagram with animated flow pulses) → Analytics showcase (live panel fed by the same public metrics snapshot, success ring) → Bento features (2 large tiles with embedded mini-visuals + 4 supporting, one moving conic border on hover) → Developer (real curl snippet + typographic stack table, no logo wall) → burgundy final CTA → footer. A 2px burgundy tracing beam tracks scroll progress along the left edge (one CSS variable write per frame).
+
+**Motion system, zero dependencies.** Verified first that no animation library exists in the repo (deps: react, react-dom, two fontsource packages) and the brief forbade unnecessary additions — so everything is hand-built in `motion.js`: `useReveal` (one-shot IntersectionObserver; initializes `inView=true` when IO is unavailable, which is exactly what makes jsdom tests pass without setup files), `useCountUp` (rAF ease-out cubic, degrades to final value), `useMagnetic` (≤6px travel, pointer:fine only), `useScrolled` (nav frosted state), `useScrollProgress` (beam). Only transform/opacity are animated anywhere; every effect has a `prefers-reduced-motion` collapse-to-final-state rule in CSS. Two bugs caught in self-review before ever running: `Reveal` initially omitted the `ls-reveal` base class (animation would never fire), and the beam needed `position: relative` on `.ls-main`.
+
+**Honesty rules preserved.** All KPIs on hero mock + analytics panel come from the public unauthenticated snapshot via `useAnalyticsMetrics(null, false)`; `metricText` renders "—" for null; the success ring rests at zero when no rate is computable; sparklines and feed rows are decorative shapes with no axis values and `aria-hidden`. No fabricated testimonials, logos, uptime numbers, or customer counts.
+
+**Test compatibility.** `landing.test.jsx` needed zero edits: all pinned anchors survived ("Operational visibility," / "in real time.", "Multi-tenant isolation" — kept as the bento tile title, "How PulseStream works", "Secure API keys", topology node names inside the hero mock, CTA labels, hash-stays-#/landing behaviour because section links remain buttons with imperative `scrollIntoView`).
+
+**Validation actually run (2026-09-15).** `npx vitest run` → 9 files, **81/81 passed**. `npx vite build` → succeeded in 812ms; CSS 83.18 kB / 15.91 kB gzip (landing.css added ~12 kB raw over the removed styles.css block), JS 290.35 kB / 86.01 kB gzip. Greps: zero `.ts`/`.tsx` files under `src/`; zero gold `rgba(201,169,98`/`#c9a962`/dashboard-token references inside landing.css (only the intentional `--ls-font-*` → global font-stack aliases); no stale `ls-pv-*`/`ls-arch-*` class references anywhere after the rewrite.
+
+**Deploy note.** The Docker frontend serves a built image — `docker compose build frontend && docker compose up -d frontend` is required to see the new landing (user runs all Git/Docker operations personally).
+
+

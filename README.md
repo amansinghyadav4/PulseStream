@@ -15,7 +15,7 @@
 <img src="https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis 7"/>
 <br/>
 <img src="https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 18"/>
-<img src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript strict"/>
+<img src="https://img.shields.io/badge/JavaScript-ES_Modules-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript ES Modules"/>
 <img src="https://img.shields.io/badge/Docker-compose-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Compose"/>
 <img src="https://img.shields.io/badge/Prometheus-%2Fmetrics-E6522C?style=for-the-badge&logo=prometheus&logoColor=white" alt="Prometheus metrics"/>
 
@@ -265,7 +265,7 @@ Public by design (no auth): `/health`, `/ready`, `/metrics`, `/analytics`, `GET 
 <tr><td><b>Storage</b></td><td>PostgreSQL 16 · SQLAlchemy 2 async · asyncpg · Alembic</td><td>Source of truth + migrations</td></tr>
 <tr><td><b>Streaming</b></td><td>Apache Kafka 3.9 (KRaft) · aiokafka</td><td>Decouple ingest from processing; replayable log</td></tr>
 <tr><td><b>Speed layer</b></td><td>Redis 7 · redis-py asyncio · fakeredis in tests</td><td>Counters the dashboard can read in microseconds</td></tr>
-<tr><td><b>Frontend</b></td><td>React 18 · TypeScript (strict) · Vite · hash router</td><td>Zero runtime UI dependencies — only <code>react</code> + <code>react-dom</code></td></tr>
+<tr><td><b>Frontend</b></td><td>React 18 · JavaScript (ES Modules) · Vite · hash router</td><td>Zero runtime UI dependencies — only <code>react</code> + <code>react-dom</code></td></tr>
 <tr><td><b>Ops</b></td><td>Docker Compose · nginx · Prometheus metrics · JSON logs</td><td>One-command topology, real readiness semantics</td></tr>
 <tr><td><b>Tests</b></td><td>pytest · pytest-asyncio · httpx · vitest · Testing Library</td><td>Unit always runnable; integration skips without Docker</td></tr>
 </table>
@@ -281,7 +281,6 @@ Public by design (no auth): `/health`, `/ready`, `/metrics`, `/analytics`, `GET 
 .\.venv\Scripts\pytest -m "not integration"   # backend unit — no Docker needed
 .\.venv\Scripts\pytest                        # full backend suite — needs PostgreSQL up
 cd frontend; npm run test                     # vitest (jsdom)
-cd frontend; npm run lint                     # tsc --noEmit
 ```
 
 <sub>Integration tests skip cleanly when PostgreSQL is unreachable, so a fresh clone is always testable. The frontend suite covers routing guards, session auth, CSRF headers, API keys and the landing page.</sub>

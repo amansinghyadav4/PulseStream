@@ -24,9 +24,6 @@ class Settings(BaseSettings):
     # `events.raw` is retired — do not reintroduce it.
     kafka_topic: str = "application-events"
     kafka_dlq_topic: str = "dead-letter-events"
-    # Development partition defaults; production should override via env
-    kafka_num_partitions: int = 6
-    kafka_replication_factor: int = 1
     # Consumer foundation (Phase 2C) — reusable for persistence/analytics workers
     kafka_group_id: str = "persistence-workers"
     kafka_auto_offset_reset: str = "earliest"
@@ -61,6 +58,22 @@ class Settings(BaseSettings):
     # Password policy + reset-token lifetime.
     password_min_length: int = 10
     password_reset_ttl_seconds: int = 60 * 30  # 30 minutes
+
+    # ---- Google sign-in (optional OAuth provider) ----
+    # Credentials come ONLY from the environment; there are no defaults that
+    # could work by accident. Google sign-in is offered to the client only when
+    # BOTH the client id and secret are set (see google_oauth_enabled).
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    # Must EXACTLY match a redirect URI registered in the Google Cloud console.
+    # It is never taken from the request; only this configured value is sent.
+    google_oauth_redirect_uri: str = "http://localhost:8001/api/v1/auth/google/callback"
+    # How long a started sign-in may take before its state expires.
+    google_oauth_state_ttl_seconds: int = 600
+    # Base URL of the SPA, used as the post-handshake destination. The OAuth
+    # callback never redirects anywhere the client asked for beyond a small,
+    # fixed route allowlist appended to this origin (no open redirect).
+    frontend_base_url: str = "http://localhost:3000"
 
     @property
     def session_cookie_secure_effective(self) -> bool:
@@ -101,6 +114,31 @@ class Settings(BaseSettings):
     @property
     def api_key_list(self) -> list[str]:
         return [key.strip() for key in self.pulsestream_api_keys.split(",") if key.strip()]
+
+    @property
+    def google_oauth_enabled(self) -> bool:
+        """Google sign-in is available only when real credentials are present.
+        Nothing is faked when they are absent — the API reports the provider as
+        unavailable and the SPA hides the button."""
+        return bool(
+            self.google_oauth_client_id.strip() and self.google_oauth_client_secret.strip()
+        )
+
+    @property
+    def frontend_origin(self) -> str:
+        return self.frontend_base_url.rstrip("/")
+
+    @property
+    def google_oauth_redirect_uri_valid(self) -> bool:
+        """Well-formed absolute http(s) URL, and https in production."""
+        from urllib.parse import urlparse
+
+        parsed = urlparse(self.google_oauth_redirect_uri)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return False
+        if self.app_env == "production" and parsed.scheme != "https":
+            return False
+        return True
 
 
 @lru_cache

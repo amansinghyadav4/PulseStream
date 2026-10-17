@@ -23,7 +23,7 @@
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  border: 2px solid rgba(237, 231, 216, 0.25);
   border-top-color: var(--accent-strong);
   border-radius: 50%;
   animation: auth-spin 0.7s linear infinite;
@@ -46,8 +46,8 @@
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(1200px 600px at -10% -10%, rgba(77, 141, 255, 0.16), transparent 55%),
-    linear-gradient(160deg, #0e1420 0%, #0b0d10 60%);
+    radial-gradient(1200px 600px at -10% -10%, var(--accent-soft), transparent 55%),
+    linear-gradient(160deg, var(--panel) 0%, var(--bg) 60%);
   border-right: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -70,11 +70,15 @@
   width: 34px; height: 34px; border-radius: 9px;
   display: grid; place-items: center;
   background: var(--accent-soft); color: var(--accent-strong);
-  border: 1px solid rgba(77, 141, 255, 0.4);
+  border: 1px solid var(--accent-line);
 }
 .auth-brand-name { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
 .auth-brand-sub { font-size: 11.5px; color: var(--text-muted); }
-.auth-aside-copy h2 { font-size: 26px; line-height: 1.25; margin: 0 0 14px; letter-spacing: -0.02em; }
+.auth-aside-copy h2 {
+  font-family: var(--font-display);
+  font-variation-settings: "SOFT" 0, "WONK" 0, "opsz" 40;
+  font-size: 28px; line-height: 1.2; margin: 0 0 14px; letter-spacing: -0.01em; font-weight: 550;
+}
 .auth-aside-copy p { color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin: 0 0 28px; }
 .auth-aside-points { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 12px; }
 .auth-aside-points li {
@@ -96,7 +100,7 @@
 .auth-card-brand { display: none; align-items: center; gap: 9px; margin-bottom: 28px; }
 .auth-card-brand .brand-mark {
   width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center;
-  background: var(--accent-soft); color: var(--accent-strong); border: 1px solid rgba(77, 141, 255, 0.4);
+  background: var(--accent-soft); color: var(--accent-strong); border: 1px solid var(--accent-line);
 }
 .auth-head { margin-bottom: 24px; }
 .auth-head h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -0.02em; }
@@ -143,7 +147,7 @@
   transition: border-color 120ms ease, box-shadow 120ms ease;
 }
 .auth-field input::placeholder { color: var(--text-muted); }
-.auth-field input:hover { border-color: rgba(255, 255, 255, 0.24); }
+.auth-field input:hover { border-color: rgba(237, 231, 216, 0.24); }
 .auth-field input:focus-visible {
   outline: none;
   border-color: var(--accent);
@@ -182,12 +186,12 @@
   padding: 11px 16px;
   margin-top: 4px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: 1px solid var(--accent);
   border-radius: var(--radius);
   font: inherit;
   font-size: 13.5px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
   transition: background 120ms ease, opacity 120ms ease;
   text-decoration: none;
@@ -200,6 +204,36 @@
 .auth-link { color: var(--accent-strong); text-decoration: none; font-size: 12.5px; }
 .auth-link:hover { text-decoration: underline; }
 
+/* ------------------------------------------------- optional OAuth provider
+   Rendered only when /auth/providers reports it configured. Uses the shared
+   tokens so the landing-page modal (which re-points them at the landing
+   palette) renders it on-theme without a second rule. */
+.ls-oauth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+.ls-oauth-btn:hover:not(:disabled) { background: var(--panel-hover); transform: translateY(-1px); }
+.ls-oauth-btn:disabled { opacity: 0.6; cursor: progress; transform: none; }
+.ls-google-mark { flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .ls-oauth-btn { transition: none; }
+  .ls-oauth-btn:hover:not(:disabled) { transform: none; }
+}
+
 /* ------------------------------------------------------------ banners */
 .auth-banner {
   border-radius: var(--radius);
@@ -208,8 +242,8 @@
   line-height: 1.5;
   border: 1px solid transparent;
 }
-.auth-banner.error { background: var(--danger-soft); border-color: rgba(248, 81, 73, 0.4); color: #ffb4ae; }
-.auth-banner.success { background: var(--ok-soft); border-color: rgba(63, 185, 80, 0.4); color: #7ee08a; }
+.auth-banner.error { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger-strong); }
+.auth-banner.success { background: var(--ok-soft); border-color: var(--ok-line); color: var(--ok-strong); }
 .auth-banner a { color: inherit; text-decoration: underline; }
 
 /* ------------------------------------------------------------ footer */
@@ -223,73 +257,10 @@
   .auth-main { padding: 32px 20px 48px; align-items: flex-start; }
 }
 
-/* ------------------------------------------------------------ sidebar: workspace + user */
-.workspace-chip {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 4px 2px 10px;
-  padding: 8px 9px;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-.workspace-avatar {
-  flex: none;
-  width: 26px; height: 26px;
-  border-radius: 7px;
-  display: grid; place-items: center;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 700; font-size: 12px;
-  border: 1px solid rgba(77, 141, 255, 0.35);
-}
-.workspace-meta { display: flex; flex-direction: column; min-width: 0; }
-.workspace-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
-.workspace-name {
-  font-size: 12.5px; font-weight: 600; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.sidebar.collapsed .workspace-chip { justify-content: center; padding: 6px; }
-.sidebar.collapsed .workspace-meta { display: none; }
-
-.sidebar-user { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-.user-chip {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%;
-  padding: 7px 8px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius);
-  cursor: pointer;
-  text-align: left;
-  color: var(--text);
-}
-.user-chip:hover, .user-chip.active { background: var(--panel-hover); border-color: var(--border); }
-.user-avatar {
-  flex: none;
-  width: 26px; height: 26px; border-radius: 50%;
-  display: grid; place-items: center;
-  background: var(--neutral-soft); color: var(--text-secondary);
-  font-weight: 700; font-size: 12px;
-}
-.user-meta { display: flex; flex-direction: column; min-width: 0; }
-.user-name {
-  font-size: 12.5px; font-weight: 550;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px;
-}
-.user-sub { font-size: 10.5px; color: var(--text-muted); }
-.signout-btn {
-  width: 100%;
-  padding: 7px 8px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text-secondary);
-  font: inherit; font-size: 12px;
-  cursor: pointer;
-}
-.signout-btn:hover { background: var(--danger-soft); border-color: rgba(248, 81, 73, 0.4); color: var(--danger); }
+/* ------------------------------------------------------------ sidebar: workspace + user
+   The `.workspace-*`, `.user-*` and `.signout-btn` rules that used to be
+   appended here were an override layer on top of styles.css, which now owns
+   the shell outright. Removed so there is one definition per rule. */
 
 /* ------------------------------------------------------------ account page */
 .account-actions { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }

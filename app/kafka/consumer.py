@@ -191,32 +191,6 @@ class KafkaEventConsumer:
         except Exception:
             return {}
 
-    # Backwards-compatible simple path without retry/DLQ (used by older tests if needed)
-    async def handle_raw_simple(
-        self,
-        raw_value: bytes,
-        handler: Callable[[dict[str, Any]], Awaitable[None]],
-    ) -> bool:
-        """Legacy simple handler without retry/DLQ (kept for reference)."""
-        try:
-            event = deserialize_event(raw_value)
-        except Exception:
-            logger.exception("malformed kafka message - skipping, not committing", extra={"topic": self._topic, "group_id": self._group_id})
-            return False
-        try:
-            await handler(event)
-        except Exception:
-            logger.exception("event handler failed - not committing offset", extra={"topic": self._topic, "group_id": self._group_id, "event_id": str(event.get("event_id", "unknown"))})
-            return False
-        if self._consumer is None:
-            return False
-        try:
-            await self._consumer.commit()
-        except Exception:
-            logger.exception("failed to commit offset", extra={"topic": self._topic, "group_id": self._group_id})
-            return False
-        return True
-
     async def run(self, handler: Callable[[dict[str, Any]], Awaitable[None]]) -> None:
         """Continuously consume messages and process via handle_raw.
 

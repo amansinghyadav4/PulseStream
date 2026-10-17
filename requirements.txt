@@ -10,3 +10,5 @@ prometheus-client>=0.20,<1.0
 alembic>=1.13,<2.0
 argon2-cffi>=23.1,<24.0
 email-validator>=2.0,<3.0
+# Outbound HTTP for the Google OAuth token exchange (app/services/google_oauth.py).
+httpx>=0.27,<1.0
